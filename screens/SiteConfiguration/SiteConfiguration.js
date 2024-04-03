@@ -5,64 +5,45 @@ import Checkbox from 'expo-checkbox'
 import { Pressable } from 'react-native'
 // import 'react-native-url-polyfill/auto'
 import { BarCodeScanner } from "expo-barcode-scanner";
-// import { supabaseCreateClient } from '../../local/Supabase'
+import { supabaseCreateClient } from '../../local/Supabase'
 
 
-export default function LogIn({ navigation }) {
+export default function SiteConfiguration({ navigation }) {
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [errorMessage, seterrorMessage] = useState('')
   const [loading, setloading] = useState(false)
   const [QRCodeScannerModalViewStatus, setQRCodeScannerModalViewStatus] = useState(false)
-  const [isRememberMeChecked, setIsRememberMeChecked] = useState(false);
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
 
 
+  const supabase = supabaseCreateClient
 
 
-  const loginUser = async () => {
-    
-    // const supabase = supabaseCreateClient()
-
-    setloading(true)
-    setEmail(email.trim())
-
-    // const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
-    //   email: email,
-    //   password: password
-    // });
-
-    // if (error) {
-    //   seterrorMessage(error.message)
-    // }
-    // else {
-    //   const { email, role, id } = user
-    //   if (isRememberMeChecked) {
-    //     storeDataLocally(user)
-    //   }
-    //   retriveDataFromSupabase(id)
-    // }
-
-    setloading(false)
-  };
-
-  const onLoginPress = () => {
-    loginUser()
-  }
-
-  const storeDataLocally = async (user) => {
+  const storeDataLocally = async (supabaseEnvironmentKey) => {
     try {
       await AsyncStorage.setItem(
-        'userData',
-        JSON.stringify(user),
+        'environmentKeys',
+        JSON.stringify(supabaseEnvironmentKey),
       );
     } catch (error) {
-      // Error saving data
       console.log(error)
     }
   }
+
+  // For Checking locally stored data
+  useEffect(() => {
+    const checkLoggedIn = async () => {
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const parsedUserData = JSON.parse(userData);
+      } else {
+        // User data doesn't exist, show login screen
+        // or redirect to the login page
+      }
+    };
+    checkLoggedIn()
+  }, [])
 
   // For QR Code Scanner Permission
   useEffect(() => {
@@ -75,36 +56,19 @@ export default function LogIn({ navigation }) {
   }, []);
 
   const handleBarCodeScanned = ({ type, data }) => {
-    // setScanned(true);
-    // alert(data);
-    const uuid = data.split("&userID=")[1].split("&token=")[0]
-    if (uuid.length > 0) {
-      setScanned(true)
-      retriveDataFromSupabase(uuid)
+    
+    setScanned(true)
+    const supabaseEnvironmentKey = {
+        "supabaseURI": data.split('&')[0].split('=')[1],
+        "supabaseAnonKey": data.split('&')[1].split('=')[1]
     }
+    storeDataLocally(supabaseEnvironmentKey)
+    setScanned(false)
+    navigation.navigate('LogInScreen')
   };
-
-  const retriveDataFromSupabase = async (uuid) => {
-    try {
-
-      let { data } = await supabaseCreateClient
-        .from('user_persons_view')
-        .select('*')
-        .eq('id', uuid);
-
-      setAllToNone()
-      console.log(data[0])
-      // navigation.replace("Dashboard", { userData: data[0] })
-    }
-    catch (e) {
-      console.log(e)
-    }
-  }
 
   const setAllToNone = () => {
     setQRCodeScannerModalViewStatus(!QRCodeScannerModalViewStatus)
-    setEmail('');
-    setPassword('');
     seterrorMessage('');
     setScanned(false);
   }
@@ -123,38 +87,8 @@ export default function LogIn({ navigation }) {
         style={styles.logo}
         source={require('../../assets/icon.png')}
       />
-      <TextInput
-        style={styles.input} placeholder='E-mail' placeholderTextColor="#aaaaaa"
-        onChangeText={(text) => { setEmail(text); seterrorMessage(''); }} value={email}
-        underlineColorAndroid="transparent" autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input} placeholderTextColor="#aaaaaa" secureTextEntry placeholder='Password'
-        onChangeText={(text) => { setPassword(text); seterrorMessage('') }} value={password}
-        underlineColorAndroid="transparent" autoCapitalize="none"
-      />
-
-      <Pressable style={styles.checkboxContainer} onPress={() => setIsRememberMeChecked(!isRememberMeChecked)}>
-        <Checkbox
-          style={styles.checkbox}
-          value={isRememberMeChecked}
-          onValueChange={() => setIsRememberMeChecked(!isRememberMeChecked)}
-          color={isRememberMeChecked ? '#e80909' : undefined}
-        />
-        <Text style={styles.checkboxLabel}>Keep me logged in</Text>
-      </Pressable>
-
-      {errorMessage.length > 0 && <Text style={{ color: 'red', textAlign: 'center' }}>*{errorMessage}*</Text>}
-      <TouchableOpacity
-        disabled={password.length == 0 || email.length == 0}
-        style={styles.button}
-        onPress={onLoginPress}>
-        <Text style={styles.buttonTitle}>
-          {loading ? <ActivityIndicator size={18} color={"#fff"} /> : "Log in"}
-        </Text>
-      </TouchableOpacity>
-      <View style={styles.underLogInView} >
-        <Text style={styles.ORText}>Or</Text>
+      <View style={styles.ScanQRCodeBtnView} >
+        <Text style={styles.ORText}>Welcome to Supplier Portal</Text>
         <TouchableOpacity onPress={() => {
           setAllToNone()
         }} style={styles.QRLink}>
@@ -180,7 +114,7 @@ export default function LogIn({ navigation }) {
                 setScanned(false);
               }}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText} onPress={()=>setScanned(false)}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -226,30 +160,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     paddingLeft: 16
   },
-  button: {
-    backgroundColor: '#e80505',
-    marginLeft: 30,
-    marginRight: 30,
-    marginTop: 5,
-    height: 48,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: 'center'
-  },
-  buttonTitle: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: "bold"
-  },
-  underLogInView: {
+  ScanQRCodeBtnView: {
     flex: 1,
     alignItems: "center",
     marginTop: 20
   },
   ORText: {
-    fontSize: 16,
+    fontSize: 25,
     color: '#2e2e2d',
-    textAlign: 'center',
+    textAlign: 'center', 
+    fontWeight:'bold',
     marginBottom: 10
   },
   QRLink: {
@@ -285,9 +205,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     textAlign: 'center',
   },
-  usernameText: {
-    color: '#e80505',
-  },
   cancelButton: {
     marginTop: 20,
     backgroundColor: '#e80505',
@@ -301,18 +218,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    marginBottom: 10,
-    marginHorizontal: 15,
-    width: '50%'
-  },
-  checkbox: {
-    alignSelf: 'center',
-  },
-  checkboxLabel: {
-    margin: 8,
   },
   qrCodeCamera: {
     height: 400,
