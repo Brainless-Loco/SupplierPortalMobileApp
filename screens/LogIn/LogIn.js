@@ -7,6 +7,8 @@ import { Pressable } from 'react-native'
 import { BarCodeScanner } from "expo-barcode-scanner";
 // import { supabaseCreateClient } from '../../local/Supabase'
 
+import { createClient } from '@supabase/supabase-js'
+
 
 export default function LogIn({ navigation }) {
 
@@ -20,30 +22,57 @@ export default function LogIn({ navigation }) {
   const [scanned, setScanned] = useState(false);
 
 
+  const [supabaseURI, setsupabaseURI] = useState('')
+  const [supabaseAnonKey, setsupabaseAnonKey] = useState('')
 
+
+
+  useEffect(() => {
+    const extractEnvironmentKeys = async ()=>{
+      try{
+        const environmentKeys = await AsyncStorage.getItem('environmentKeys');
+      if (environmentKeys) {
+        const environmentKeysData = JSON.parse(environmentKeys);
+        setsupabaseURI(environmentKeysData.supabaseURI)
+        setsupabaseAnonKey(environmentKeysData.supabaseAnonKey)
+      }
+      }catch(error){
+        console.log(error)
+      }
+    }
+    extractEnvironmentKeys()
+  }, [])
+  
 
   const loginUser = async () => {
     
-    // const supabase = supabaseCreateClient()
+    const supabase = createClient(supabaseURI, supabaseAnonKey, {
+      auth: {
+          storage: AsyncStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+      },
+    })
 
     setloading(true)
     setEmail(email.trim())
 
-    // const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
-    //   email: email,
-    //   password: password
-    // });
+    const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
 
-    // if (error) {
-    //   seterrorMessage(error.message)
-    // }
-    // else {
-    //   const { email, role, id } = user
-    //   if (isRememberMeChecked) {
-    //     storeDataLocally(user)
-    //   }
-    //   retriveDataFromSupabase(id)
-    // }
+    if (error) {
+      seterrorMessage(error.message)
+    }
+    else {
+      const { email, role, id } = user
+      if (isRememberMeChecked) {
+        storeDataLocally(user)
+      }
+      retriveDataFromSupabase(id)
+    }
 
     setloading(false)
   };
@@ -77,24 +106,35 @@ export default function LogIn({ navigation }) {
   const handleBarCodeScanned = ({ type, data }) => {
     // setScanned(true);
     // alert(data);
+    if(data.includes("&userID")==false) return;
+    // console.log(data)
     const uuid = data.split("&userID=")[1].split("&token=")[0]
     if (uuid.length > 0) {
       setScanned(true)
       retriveDataFromSupabase(uuid)
+
     }
   };
 
   const retriveDataFromSupabase = async (uuid) => {
     try {
+      console.log("reached")
+      const supabase = createClient(supabaseURI, supabaseAnonKey, {
+        auth: {
+            storage: AsyncStorage,
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: false,
+        },
+      })
 
-      let { data } = await supabaseCreateClient
+      let { data } = await supabase
         .from('user_persons_view')
         .select('*')
         .eq('id', uuid);
 
       setAllToNone()
-      console.log(data[0])
-      // navigation.replace("Dashboard", { userData: data[0] })
+      navigation.replace("Dashboard", { userData: data[0] })
     }
     catch (e) {
       console.log(e)

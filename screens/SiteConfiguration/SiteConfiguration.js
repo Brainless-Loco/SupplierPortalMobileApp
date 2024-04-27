@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Modal } from 'react-native'
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import Checkbox from 'expo-checkbox'
-import { Pressable } from 'react-native'
 // import 'react-native-url-polyfill/auto'
 import { BarCodeScanner } from "expo-barcode-scanner";
-import { supabaseCreateClient } from '../../local/Supabase'
 
 
 export default function SiteConfiguration({ navigation }) {
@@ -17,7 +14,6 @@ export default function SiteConfiguration({ navigation }) {
   const [scanned, setScanned] = useState(false);
 
 
-  const supabase = supabaseCreateClient
 
 
   const storeDataLocally = async (supabaseEnvironmentKey) => {
@@ -31,19 +27,6 @@ export default function SiteConfiguration({ navigation }) {
     }
   }
 
-  // For Checking locally stored data
-  useEffect(() => {
-    const checkLoggedIn = async () => {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const parsedUserData = JSON.parse(userData);
-      } else {
-        // User data doesn't exist, show login screen
-        // or redirect to the login page
-      }
-    };
-    checkLoggedIn()
-  }, [])
 
   // For QR Code Scanner Permission
   useEffect(() => {
@@ -83,10 +66,10 @@ export default function SiteConfiguration({ navigation }) {
 
   return (
     <ScrollView style={styles.container}>
-      <Image
+      {/* <Image
         style={styles.logo}
         source={require('../../assets/icon.png')}
-      />
+      /> */}
       <View style={styles.ScanQRCodeBtnView} >
         <Text style={styles.ORText}>Welcome to Supplier Portal</Text>
         <TouchableOpacity onPress={() => {

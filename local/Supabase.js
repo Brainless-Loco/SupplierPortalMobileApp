@@ -30,20 +30,14 @@ const getSupabaseAnonKey = async ()=>{
     }
 }
 
-export const supabaseCreateClient =  createClient(getSupabaseUri(), getSupabaseAnonKey(), {
-    auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false,
-    },
-})
-
-export const supabaseCreateClient2 =  createClient('getSupabaseUri()',' getSupabaseAnonKey()', {
-    auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false,
-    },
-})
+export const supabaseCreateClient = (parameter1, parameter2)=>{
+  console.log(parameter1)
+    return createClient(getSupabaseUri(), getSupabaseAnonKey(), {
+      auth: {
+          storage: AsyncStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+      },
+  })
+}
